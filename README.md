@@ -15,9 +15,9 @@ Advantech Edge Agent is an interactive sandbox designed to facilitate the rapid 
 
 > 💡Learn more about [Practical Examples](https://github.com/advantech-EdgeAI/edge_agent/wiki#practical-examples) of using Edge Agent in wiki.
 
-## Installation
+# Edge Agent Installation 
 
-### System Requirements
+## System Requirements
 
 | Name            | Description                                           |
 |-----------------|-------------------------------------------------------|
@@ -27,258 +27,84 @@ Advantech Edge Agent is an interactive sandbox designed to facilitate the rapid 
 | USB Camera      | Logitech c270 HD webcam or any V4L2 compatible camera |
 | Internet        | Required during installation                          |
 
-### Docker Installation
+## Docker Service Installation 
+> 💡From JetPack 6, SDK Manager does not install docker by default.
 
-Ensure your system has Docker installed. Check the version of Docker:
-```sh
+### Checking on Docker Service
+Check the version of docker to ensure your system has docker service installed properly.
+```
 docker --version
-# or run the docker command with sudo
-# sudo docker --version
 ```
 
-Install Docker on your system:
-
-1. Make NVIDIA's Jetson apt source available
-   ```sh
-   sudo vi /etc/apt/sources.list.d/nvidia-l4t-apt-source.list
+* If docker is not availabe, run following script to enable it on your JP 6 device.
    ```
-   Uncomment the lines as the following:
-   ```sh
-   deb https://repo.download.nvidia.com/jetson/common r36.4 main
-   deb https://repo.download.nvidia.com/jetson/t234 r36.4 main
-   deb https://repo.download.nvidia.com/jetson/ffmpeg r36.4 main
-   ```
-2. Manually install Docker and set it up:
-   ```sh
-   sudo apt update
-   sudo apt install -y nvidia-container curl
-   curl https://get.docker.com | sh && sudo systemctl --now enable docker
-   sudo nvidia-ctk runtime configure --runtime=docker
-   ```
-3. Restart the Docker service and add your user to the Docker group to run commands without sudo:
-   ```sh
-   sudo systemctl restart docker
-   sudo usermod -aG docker $USER
-   newgrp docker
-   ```
-   Check the Docker installation with the command:
-   ```sh
-   docker --version
-   ```
-4. Add default runtime in `/etc/docker/daemon.json`:
-   ```sh
-   sudo vi /etc/docker/daemon.json
-   ```
-   Insert the `"default-runtime": "nvidia"` line as following:
-   ```json
-   {
-    "runtimes": {
-        "nvidia": {
-            "path": "nvidia-container-runtime",
-            "runtimeArgs": []
-         }
-      },
-    "default-runtime": "nvidia"
-   }
-   ```
-5. Restart Docker:
-   ```sh
-   sudo systemctl daemon-reload && sudo systemctl restart docker
+   bash init-dockerd-jetson-jp6.sh
    ```
 
-###  SSD Installation 
+##  Setup Extended Storage - NVMe SSD
+> 💡If the rootfs(/) has large free space, and no need to mount an extended storage for tones of docker images. You could jump to "Download Essential Data"
 
+### Physical installation
 1. Power off your Jetson device and disconnect peripherals.
 2. Insert the NVMe SSD into the carrier board, ensuring it's properly seated and secured.
 3. Reconnect peripherals and power on the device.
 4. Verify the SSD is recognized by running:
-   ```sh
+   ```
    lspci
    ```
    You should see an entry similar to:
-   ```sh
+   ```
    0007:01:00.0 Non-Volatile memory controller: Marvell Technology Group Ltd. Device 1322 (rev 02)
    ```
 
-### Format and Set Up Auto-Mount
+### Make ext4 FS on SSD and Mount it on /ssd by default
+ - Find the "Format and set up auto-mount" Section in [Link](https://www.jetson-ai-lab.com/tips_ssd-docker.html)
 
-1. Identify the SSD device name:
-   ```sh
-   lsblk
-   ```
-   Look for a device like `nvme0n1`.
-2. Format the SSD:
-   ```sh
-   sudo mkfs.ext4 /dev/nvme0n1
-   ```
-3. Create a mount point and mount the SSD:
-   ```sh
-   sudo mkdir /ssd
-   sudo mount /dev/nvme0n1 /ssd
-   ```
-4. Ensure the mount persists after reboot:
-   - Retrieve the UUID of the SSD:
-     ```sh
-     lsblk -f | grep nvme0n1
-     ```
-   - Create and edit the `/etc/rc.local` file:
-     ```sh
-     sudo vi /etc/rc.local
-     ```
-   - Add the following lines, replacing UUID with the retrieved UUID:
-     ```sh
-     #!/bin/bash
-     sleep 10
-     mount UUID=************-****-****-****-******** /ssd
-     systemctl daemon-reload
-     systemctl restart docker
-     journalctl -u docker
-     exit 0
-     ```
-5. Make `/etc/rc.local` executable:
-   ```sh
-   sudo chmod +x /etc/rc.local
-   ```
-6. Change the ownership of /ssd:
-   ```sh
-   sudo chown ${USER}:${USER} /ssd
-   ```
+### Migrate Docker Directory SSD
+ - Find the "Migrate Docker Directory SSD" Section in [Link](https://www.jetson-ai-lab.com/tips_ssd-docker.html)
 
-### Migrate Docker Directory to SSD
-
-With the SSD installed, you can use the extra storage for the Docker directory.
-
-1. Stop Docker:
-   ```sh
-   sudo systemctl stop docker
-   ```
-2. Move the Docker folder:
-   ```sh
-   sudo du -csh /var/lib/docker/
-   sudo mkdir /ssd/docker
-   sudo rsync -axPS /var/lib/docker/ /ssd/docker/
-   sudo du -csh /ssd/docker/
-   ```
-3. Edit `/etc/docker/daemon.json`:
-   ```sh
-   sudo vi /etc/docker/daemon.json
-   ```
-4. Adding the line `"data-root": "/ssd/docker"` as the following:
-   ```json
-   {
-    "runtimes": {
-        "nvidia": {
-            "path": "nvidia-container-runtime",
-            "runtimeArgs": []
-         }
-      },
-    "default-runtime": "nvidia",
-    "data-root": "/ssd/docker"
-   }
-   ```
-5. Rename and remove the old Docker data directory:
-   ```sh
-   sudo mv /var/lib/docker /var/lib/docker.old
-   # optional: sudo rm -rf /var/lib/docker.old
-   ```
-
-5. Restart Docker:
-   ```sh
-   sudo systemctl daemon-reload
-   sudo systemctl restart docker
-   sudo journalctl -u docker
-   ```
 
 ### ☕ Take a Break: Optional Steps
-
 At this stage, you have installed Docker and an SSD on your device and set the SSD as the default storage location for Docker images. You can follow these optional steps to verify that the SSD is configured correctly for Docker images and disable Apport reporting:
 
 - [Test Docker on SSD](https://github.com/advantech-EdgeAI/edge_agent/wiki/Test-Docker-on-SSD)
 - [Disable Apport Reporting](https://github.com/advantech-EdgeAI/edge_agent/wiki/Disable-Apport-Reporting)
 
-### Download Essential Data
 
-1. Clone Jetson-containers and install:
-   ```sh
-   cd /ssd
-   git clone https://github.com/dusty-nv/jetson-containers
-   bash jetson-containers/install.sh
-   ```
-2. Clone Edge Agent and pre-configure:
-   ```sh
-   git clone https://github.com/advantech-EdgeAI/edge_agent.git
+## Download Essential Data
+```
+bash download-EA-JC-2ssd.sh
+```
 
-   docker run --name share-volume00-container ispsae/share-volume00
-   docker cp share-volume00-container:/data/. /ssd/edge_agent/pre_install/
-
-   mv /ssd/edge_agent/pre_install/owlv2.engine /ssd/edge_agent/nanoowl/data/
+## Starting Edge Agent
+### Start Edge Agent container without HuggingFace token:
    ```
-3. Extract demo videos:
-   ```sh
-   cd /ssd/edge_agent/pre_install
-   tar xfz demo-videos.tgz --strip-components=1
-   ```
-4. Move data to Jetson containers:
-   ```sh
-   mv nanodb /ssd/jetson-containers/data/
-   mv forbidden_zone /ssd/jetson-containers/data/images/
-   mv demo /ssd/jetson-containers/data/videos/
-   ```
-5. Pull the Agent Studio container:
-   ```sh
-   docker pull dustynv/nano_llm:24.7-r36.2.0
-   ```
-
-### Apply Patches
-
-1. Run the container:
-   ```sh
    jetson-containers run \
+   -v /etc/machine-id:/etc/machine-id \
+   -v /:/dummy_root:ro \
    -v /ssd/edge_agent:/opt/NanoLLM \
-   dustynv/nano_llm:24.7-r36.2.0 \
-   /bin/bash
+   -v /ssd/edge_agent/pre_install/project_presets:/data/nano_llm/presets \
+   ispsae/nano_llm:24.7-r36.2.0_bug_fixed \
+   python3 -m nano_llm.studio
    ```
-2. Inside the container, execute:
-   ```sh
-   cd /opt/NanoLLM/pre_install && sh pre_install.sh
-   ```
-3. Commit the updated container:
-   ```sh
-   sudo docker commit `docker ps -q -l` dustynv/nano_llm:24.7-r36.2.0_bug_fixed
-   ```
+### Or start it with the HuggingFace token:
+#### Register on HuggingFace - Sign up at HuggingFace and obtain an access token (Settings section).
 
-### Register on HuggingFace
-
-Sign up at HuggingFace and obtain an access token (Settings section).
-
+* Remember to replace the HUGGINGFACE_TOKEN value with yours
 ![](./images/media/image3.png)
-
-## Usage
-
-Start Edge Agent container with HuggingFace token:
-   ```sh
+   ```
    jetson-containers run --env HUGGINGFACE_TOKEN=hf_xyz123abc456 \
    -v /etc/machine-id:/etc/machine-id \
    -v /:/dummy_root:ro \
    -v /ssd/edge_agent:/opt/NanoLLM \
    -v /ssd/edge_agent/pre_install/project_presets:/data/nano_llm/presets \
-   dustynv/nano_llm:24.7-r36.2.0_bug_fixed \
-   python3 -m nano_llm.studio
-   ```
-Or start without the HuggingFace token:
-   ```sh
-   jetson-containers run \
-   -v /etc/machine-id:/etc/machine-id \
-   -v /:/dummy_root:ro \
-   -v /ssd/edge_agent:/opt/NanoLLM \
-   -v /ssd/edge_agent/pre_install/project_presets:/data/nano_llm/presets \
-   dustynv/nano_llm:24.7-r36.2.0_bug_fixed \
+   ispsae/nano_llm:24.7-r36.2.0_bug_fixed \
    python3 -m nano_llm.studio
    ```
 
-Once the server starts on your device, open a browser and navigate to https://IP_ADDRESS:8050 (Note: Avoid using Firefox).
+Once the server starts on your device, open a browser(Chromium) and navigate to https://IP_ADDRESS:8050 (Note: Do NOT use Firefox).
 
-Here are a few important notes:
+### Here are a few important notes:
 
 - Use the `--load` option to load your prebuilt pipeline before starting.
 - If the program crashes, it will automatically restore the most recent pipeline you created.
