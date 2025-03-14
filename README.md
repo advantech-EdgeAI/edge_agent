@@ -77,27 +77,32 @@ bash download-EA-JC-2ssd.sh
 ```
 
 ## Starting Edge Agent
-### Start Edge Agent container without HuggingFace token:
+```
+bash startEA.sh
+```
+
+### or start Edge Agent manually
+#### Start Edge Agent container without HuggingFace token:
    ```
-   jetson-containers run \
+   sudo jetson-containers run \
    -v /etc/machine-id:/etc/machine-id \
    -v /:/dummy_root:ro \
-   -v /ssd/edge_agent:/opt/NanoLLM \
-   -v /ssd/edge_agent/pre_install/project_presets:/data/nano_llm/presets \
+   -v ${your-edge-agent-folder}:/opt/NanoLLM \
+   -v ${your-edge-agent-folder}/pre_install/project_presets:/data/nano_llm/presets \
    ispsae/nano_llm:24.7-r36.2.0_bug_fixed \
    python3 -m nano_llm.studio
    ```
-### Or start it with the HuggingFace token:
-#### Register on HuggingFace - Sign up at HuggingFace and obtain an access token (Settings section).
+#### Or start it with the HuggingFace token:
+##### Register on HuggingFace - Sign up at HuggingFace and obtain an access token (Settings section).
 
 * Remember to replace the HUGGINGFACE_TOKEN value with yours
 ![](./images/media/image3.png)
    ```
-   jetson-containers run --env HUGGINGFACE_TOKEN=hf_xyz123abc456 \
+   sudo jetson-containers run --env HUGGINGFACE_TOKEN=hf_xyz123abc456 \
    -v /etc/machine-id:/etc/machine-id \
    -v /:/dummy_root:ro \
-   -v /ssd/edge_agent:/opt/NanoLLM \
-   -v /ssd/edge_agent/pre_install/project_presets:/data/nano_llm/presets \
+   -v ${your-edge-agent-folder}:/opt/NanoLLM \
+   -v ${your-edge-agent-folder}/pre_install/project_presets:/data/nano_llm/presets \
    ispsae/nano_llm:24.7-r36.2.0_bug_fixed \
    python3 -m nano_llm.studio
    ```

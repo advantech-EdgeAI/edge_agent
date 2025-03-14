@@ -1,35 +1,44 @@
 #!/bin/bash
 
+## Please run this shell in edge_agent/
+PWD=$(pwd)
+echo "The current working folder is $PWD"
+
 # Clone Jetson-containers and install:
-cd /ssd
+SSD=/ssd
+sudo mkdir -p $SSD
+sudo chmod 0777 $SSD
 
 JCI=jetson-containers/install.sh
-if [ ! -f $JCI ];
+if [ ! -f $SSD/$JCI ];
 then
+    cd $SSD
     git clone https://github.com/dusty-nv/jetson-containers
     bash $JCI
 fi
 
-# Clone Edge Agent and pre-configure:
-git clone https://github.com/advantech-EdgeAI/edge_agent.git
-
-OWL=/ssd/edge_agent/nanoowl/data/owlv2.engine
-if [ ! -f $OWL ];
+# copy owlv2 tensorrt model to target folder
+PRE_INSD=$PWD/pre_install
+OWLRT=$PWD/nanoowl/data/owlv2.engine
+if [ ! -f $OWLRT ];
 then
-    docker run --name share-volume00-container ispsae/share-volume00
-    docker cp share-volume00-container:/data/. /ssd/edge_agent/pre_install/
-    mv /ssd/edge_agent/pre_install/owlv2.engine /ssd/edge_agent/nanoowl/data/
+    sudo docker run --name share-volume00-container ispsae/share-volume00
+    sudo docker cp share-volume00-container:/data/. $PRE_INSD
+    sudo cp -fa $PRE_INSD/owlv2.engine $OWLRT
 fi
 
-# Extract demo videos in /ssd/edge_agent/pre_install
-# then move database and data in /ssd/edge_agent/pre_install to Jetson-containers folder
-cd /ssd/edge_agent/pre_install
-tar xfz demo-videos.tgz --strip-components=1
-mv nanodb /ssd/jetson-containers/data/
-mv forbidden_zone /ssd/jetson-containers/data/images/
-mv demo /ssd/jetson-containers/data/videos/
+
+# then move database and data in edge_agent/pre_install to Jetson-containers folder
+cd $PRE_INSD
+tar xzf demo-videos.tgz --strip-components=1
+cp -far nanodb/ $SSD/jetson-containers/data/
+cp -far forbidden_zone/ $SSD/jetson-containers/data/images/
+cp -far demo/ $SSD/jetson-containers/data/videos/
 
 # Pull the Edge Agent docker images
-sudo docker pull ispsae/nano_llm:nano_llm-24.7-r36.2.0_bug_fixed
-#sudo docker tag ispsae/nano_llm:nano_llm-24.7-r36.2.0_bug_fixed dustynv/nano_llm: nano_llm-24.7-r36.2.0_bug_fixed
+echo "docker pull ispsae/nano_llm:24.7-r36.2.0_bug_fixed"
+echo "Please be patient, the download will take some time."
+echo "..."
+sudo docker pull ispsae/nano_llm:24.7-r36.2.0_bug_fixed
+#sudo docker tag ispsae/nano_llm:nano_llm-24.7-r36.2.0_bug_fixed dustynv/nano_llm:nano_llm-24.7-r36.2.0_bug_fixed
 sudo docker images
