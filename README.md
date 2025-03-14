@@ -242,7 +242,7 @@ At this stage, you have installed Docker and an SSD on your device and set the S
    ```sh
    cd /opt/NanoLLM/pre_install && sh pre_install.sh
    ```
-3. Commit the updated container:
+3. Commit the updated container (send the command in another terminal session on your device):
    ```sh
    sudo docker commit `docker ps -q -l` dustynv/nano_llm:24.7-r36.2.0_bug_fixed
    ```
